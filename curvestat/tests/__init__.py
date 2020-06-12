@@ -1,1 +1,1 @@
-from .epi_tests import *
+from .curvestat_tests import *
