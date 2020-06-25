@@ -3,6 +3,7 @@
 Get and plot descriptive statistics for ensembles of curves.
 """
 
-#from .FILE import ( 
-#        )
+from .stats import ( 
+	CurveBoxPlot
+        )
 
