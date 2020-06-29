@@ -18,6 +18,9 @@ setup(
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
     install_requires=[
+    	'numpy>=1.18.4',
+    	'matplotlib>=3.2.1',
+    	'scipy>=1.4.1',
     ],
     tests_require=[],
     setup_requires=['pytest-runner'],

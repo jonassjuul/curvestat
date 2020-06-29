@@ -1,2 +1,2 @@
 # curvestat
-Get and plot descriptive statistics for ensembles of curves
+Get and plot curve-based descriptive statistics for ensembles of curves

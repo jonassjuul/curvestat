@@ -6,11 +6,16 @@ import random
 import numpy as np 
 import copy
 from scipy.stats import gaussian_kde
+import matplotlib.pyplot as plt 
+from matplotlib import cm
 
 class CurveBoxPlot() :
     
-    def __init__(self,curves,sample_curves=10,sample_repititions=100,interval=None,weights=None,time=None,plot_percentiles=None,plot_heatmap=None,verbose=False) :
+    def __init__(self,curves,sample_curves=10,sample_repititions=100,interval=None,time_weights=None,curve_weights=None,time=None,verbose=False) :
         '''
+        Class to make curve box plots.
+
+
         Parameters
         ----------
 
@@ -23,37 +28,32 @@ class CurveBoxPlot() :
 
         sample_repititions : :int:
 
-        ranking : :obj: `dict` with {curve_name:score}
-            higher score means more central.
-
-        percentiles : :obj: `list` with percentiles we want to find.
-            List entry X means we want to find the X _most central_ curves.
-            Example: percentiels = [50] find the most central 50% of curves,
-            i.e. the 25-75 percentiles.
-
         interval : :obj: `list` with bool entries.
             Entry i is True if i is in interval. False otherwise.
 
-        weights : 
+        time_weights : :obj: `list` of floats
             Specifies reward for a curve falling inside an
             envelope at a time step.
 
+        curve_weights : `dict` with same keys as 'curves'. values are :int:
+            Specifies factor that the score of a curve will be
+            multiplied with before the ranking is returned. 
+            Factor could be dependent on prior of curves.
+
+        time : :obj: `array` of same length as the arrays in curves.
+            Array elements are the time steps corresponding to curve entries. 
+
         verbose : bool, default: False
-
-
+            Print stuff?
 
         '''
 
         self.curves = copy.deepcopy(curves)
         self.sample_parameters = {'N_curves':sample_curves,'N_repititions':sample_repititions}
-        #self.ranking = ranking
-        #self.percentiles = percentiles        
         self.interval = interval
-        self.weights = weights
+        self.weights = time_weights
+        self.curve_weights = curve_weights
         self.time = time
-        #self.heatmap_curves = heatmap_curves
-        self.plot_percentiles = plot_percentiles
-        self.plot_heatmap = plot_heatmap
 
     def rank_allornothing(self) :
 
@@ -75,7 +75,7 @@ class CurveBoxPlot() :
             # If specified interval, only take this interval into account when ranking.
             for curve in curve_names :
                 # This discards everything but interval from the analysis
-                curve_copies[curve] = np.array(curve_copies[curve][interval])
+                curve_copies[curve] = np.array(curve_copies[curve][self.interval])
         else :
             # If no specified interval, get all curves as numpy arrays
             for curve in curve_names :
@@ -113,6 +113,10 @@ class CurveBoxPlot() :
                     if ( is_below_min == 0 ) :
                         # Reward with 1 point
                         curve_scores[curve] += 1
+
+        if (self.curve_weights != None) :
+            for curve in curve_names :
+                curve_scores[curve] *= self.curve_weights[curve]
 
         return curve_scores
 
@@ -156,6 +160,12 @@ class CurveBoxPlot() :
                 # Reward with points for all entries not below min or above max.
                 curve_scores[curve] += np.sum(weights)-is_above_max-is_below_min
 
+
+        if (self.curve_weights != None) :
+            for curve in curve_names :
+                curve_scores[curve] *= self.curve_weights[curve]
+
+
         return curve_scores        
 
     def rank_max(self) :
@@ -195,6 +205,18 @@ class CurveBoxPlot() :
 
         '''
         Calculates curve-based and fixed-time percentiles from ranking.
+        
+        INPUTS
+        ----------
+        ranking : :obj: `dict` with {curve_name:score}
+            higher score means more central.        
+
+        percentiles : :obj: `list` with percentiles we want to find.
+            List entry X means we want to find the X _most central_ curves.
+            Example: percentiles = [50] find the most central 50% of curves,
+            i.e. the 25-75 percentiles.            
+
+        
         '''
 
         self.ranking = ranking
@@ -271,9 +293,27 @@ class CurveBoxPlot() :
                 if (len(self.curves[curve]) == timestep+1) :
                     last_timestep = True
 
+        # Save and results
+        self.percentiles_results = percentiles_results
         return percentiles_results
 
     def get_peakheatmap(self,heatmap_curves) :
+
+
+        '''
+        Finds time and values of curve peaks for curves
+        listed in 'heatmap_curves'. Then uses a gaussian
+        kernel to assign each a value indicating density
+        of peaks around this peak. 
+
+
+        INPUTS
+        ----------
+        heatmap_curves : :obj: `list` keys from 'curves' dict. 
+            These are the curves that the peaks will be found
+            for.
+        '''
+
         self.heatmap_curves = heatmap_curves
 
         # find peaks
@@ -296,61 +336,101 @@ class CurveBoxPlot() :
         idx = peak_density.argsort()
         peak_heatmap = {'peak_time':peak_time[idx], 'peak_value':peak_value[idx],'peak_density': peak_density[idx]}
         
+        # Save heatmap
+        self.heatmap = peak_heatmap
+
         return peak_heatmap
 
 
     def plot_everything(self) :
+
+        '''
+        Plots all curve-based and fixed-time percentiles for box plot class.
+        Also plots peak heatmap and interval boundaries if such are defined
+        for the box plot.
+        '''
+
         fig, ax = plt.subplots()
 
-        if (self.plot_percentiles != None) :
+        if (self.percentiles != None) :
             # First, plot Curve-based percentiles,
 
             # Find number of minimum percentile. This is useful when defining which spaces to fill with color
-            number_of_percentiles = len(self.plot_percentiles['curve-based'].keys())
-            percentiles_by_value = sorted(self.plot_percentiles['curve-based'].keys())
+            number_of_percentiles = len(self.percentiles)
+            percentiles_by_value = sorted(self.percentiles)
+
 
             # Plot least extreme area
-            ax.fill_between(self.time,self.plot_percentiles['curve-based'][percentiles_by_value[0]]['min-boundary'],self.plot_percentiles['curve-based'][percentiles_by_value[0]]['max-boundary'],color='C0',alpha=0.5)
+            ax.fill_between(self.time,self.percentiles_results['curve-based'][percentiles_by_value[0]]['min-boundary'],self.percentiles_results['curve-based'][percentiles_by_value[0]]['max-boundary'],color='C0',alpha=0.5,label='CB: %s'%percentiles_by_value[0])
 
             for percentile in range (len(percentiles_by_value)-1) :
-                ax.fill_between(self.time,self.plot_percentiles['curve-based'][percentiles_by_value[percentile]]['max-boundary'],self.plot_percentiles['curve-based'][percentiles_by_value[percentile+1]]['max-boundary'],color='C0',alpha=0.5/(percentile+2))
-                ax.fill_between(self.time,self.plot_percentiles['curve-based'][percentiles_by_value[percentile]]['min-boundary'],self.plot_percentiles['curve-based'][percentiles_by_value[percentile+1]]['min-boundary'],color='C0',alpha=0.5/(percentile+2))
+                ax.fill_between(self.time,self.percentiles_results['curve-based'][percentiles_by_value[percentile]]['max-boundary'],self.percentiles_results['curve-based'][percentiles_by_value[percentile+1]]['max-boundary'],color='C0',alpha=0.5/(percentile+2),label='CB: %s'%percentiles_by_value[percentile+1])
+                ax.fill_between(self.time,self.percentiles_results['curve-based'][percentiles_by_value[percentile]]['min-boundary'],self.percentiles_results['curve-based'][percentiles_by_value[percentile+1]]['min-boundary'],color='C0',alpha=0.5/(percentile+2))
 
             # Then, plot Fixed-time percentiles
             percentile_number = -1
-            for percentile in self.plot_percentiles['fixed-time'].keys() :
+            for percentile in self.percentiles_results['fixed-time'].keys() :
                 percentile_number +=1
-                ax.plot(self.time,self.plot_percentiles['fixed-time'][percentile]['min-boundary'],'k',alpha=1/(1+percentile_number))
-                ax.plot(self.time,self.plot_percentiles['fixed-time'][percentile]['max-boundary'],'k',alpha=1/(1+percentile_number))
+                ax.plot(self.time,self.percentiles_results['fixed-time'][percentile]['min-boundary'],'k',alpha=1/(1+percentile_number),label='FT: %s'%percentile)
+                ax.plot(self.time,self.percentiles_results['fixed-time'][percentile]['max-boundary'],'k',alpha=1/(1+percentile_number))
 
-        if (self.plot_heatmap) :
-            ax.scatter(self.plot_heatmap['peak_time'], self.plot_heatmap['peak_value'], c=self.plot_heatmap['peak_density'], s=50, edgecolor='')
+        if (self.interval) :
+            
+            bool_reverse = np.invert(self.interval)
+            interval_boundaries = self.interval[1:]*bool_reverse[0:-1]+self.interval[0:-1]*bool_reverse[1:]
+            boundary_times = self.time[1:][interval_boundaries]
+
+            for boundary_time in boundary_times[:-1] :
+                ax.axvline(x=boundary_time,ls='--',c='C1',alpha=0.5)
+            boundary_time = boundary_times[-1]
+            ax.axvline(x=boundary_time,ls='--',c='C1',alpha=0.5,label='Interval')            
+
+        if (self.heatmap) :
+
+            ax.scatter(self.heatmap['peak_time'], self.heatmap['peak_value'], c=self.heatmap['peak_density'], s=50)#, edgecolor='')
 
 
 class LoadRisk() :
 
     def __init__(self,curves,verbose=False) :
-
         '''
-        Parameters
-        
-        curves:
+        Class to make heatmap of load vs duration.
 
-        verbose: 
 
+        PARAMETERS
+        ------------
+
+        curves : :obj: `dict` of arrays
+            a dict that contains the curves which we would
+            like to create the curve-based descriptive 
+            statistics for.
+
+        verbose : bool, default: False
+            Print stuff?
         '''
 
         self.curves = curves
         self.verbose = verbose
 
-    def get_loadandduration(self) :
+    def get_loadandduration(self,load_granularity = 10,time_granularity = 1) :
 
         '''
         Creates matrix to be plotted as heatmap. 
         Dimension are time and load and entry (i,j) is the fraction of curves that exceed the value i for at least a duration j.
+
+        PARAMETERS
+        ------------------
+        load_granularity :int:
+            integer indicating granularity of heatmap. The function will check how many curve entries show values above 
+            0, load_granularity, 2*load_granularity,... 
+        
+        time_granulairity :int:
+
         '''
-        load_granularity = 10
-        time_granularity = 1
+
+        # Granularity of analysis. If load_granularity is 10, we check how many curves have more than 0,10,20,30,... patients hospitalized for duration of interest.
+        self.load_granularity =  load_granularity
+        self.time_granularity = time_granularity
 
 
         curve_copies = copy.deepcopy(self.curves)
@@ -359,8 +439,8 @@ class LoadRisk() :
         max_load = max_value_in_ensemble(curve_copies)
 
         # Define dimensions of result matrix
-        max_load_dimension = int(max_load/10)+10
-        max_time_dimension = len(curve_copies[list(curve_copies.keys())[0]])
+        max_load_dimension = int(max_load/load_granularity)+load_granularity
+        max_time_dimension = int(len(curve_copies[list(curve_copies.keys())[0]])/time_granularity)+time_granularity
 
         # Array for results..
         colormap_loadduration = np.zeros((max_load_dimension,max_time_dimension))           
@@ -369,17 +449,18 @@ class LoadRisk() :
         sample_number = -1
         for sample in (curve_copies.keys()) :
             sample_number +=1 
-            if (self.verbose == True) :
-                if (sample_number/100 == sample_number // 100) :
-                    print("Doing curve number",sample_number,"out of",len(curve_copies.keys()))
+            
+            # Choose single curve
             this_curve = curve_copies[sample]
 
-
+            # Iterate over load entries.
             for load_entry in range (int(max(this_curve)/load_granularity)+1) :
                 load = load_entry*load_granularity+0
                 
+                # How many curve entries show >= load patients. Remove the rest of the entries.
                 this_curve = this_curve[this_curve>=load]
 
+                # Number of result-matrix time entries that are above the load.
                 time_above = len(this_curve)
                 entries_above = int(time_above/time_granularity)
                 
@@ -389,16 +470,51 @@ class LoadRisk() :
                 # save this in array
                 colormap_loadduration[load_entry,:entries_above+1] += 1            
 
-
+        # Normalize each entry to get probability
         colormap_loadduration /= len(curve_copies.keys())
+
+        # Save result
+        self.colormap_loadduration = colormap_loadduration
+
         return colormap_loadduration
 
+    def plot_everything(self,levels=[0.05,0.1,0.3,0.5,0.8]) :
 
-    #def plot_heatmap(self,colormap_matrix):
+        '''
+        Plots heatmap of load vs duration.
+        '''
+        
+        # mesh for colormap (multiplying with granularity to get axis units right)
+        colormesh_first = np.arange(0,len(self.colormap_loadduration[:,0])*self.load_granularity,self.load_granularity)
+        colormesh_second = np.arange(0,len(self.colormap_loadduration[0,:])*self.time_granularity,self.time_granularity)
+
+        # Plot
+        fig, ax = plt.subplots()
+
+        # Heatmap
+        meshax = ax.pcolormesh(colormesh_second,colormesh_first,self.colormap_loadduration,cmap=cm.Blues)
+        
+        # Colormap
+        cbar = plt.colorbar(meshax)
+        cbar.set_label('Probability')
+
+        # Contours
+        CS = ax.contour(colormesh_second,colormesh_first,self.colormap_loadduration,levels=levels,colors='k',linewidths=1,alpha=0.8)
+        ax.clabel(CS,CS.levels, inline=True, fmt='%2.2f')
 
 
 
 def max_value_in_ensemble(curves) :
+    '''
+    Find the total maximum value of ensemble of curves.
+    
+    PARAMETERS
+    -----------
+    curves : :obj: `dict` of arrays
+        a dict that contains the curves which we would
+        like to create the curve-based descriptive 
+        statistics for.    
+    '''
     max_value = 0
     for sample in (curves.keys()) :
         this_max = max(curves[sample])

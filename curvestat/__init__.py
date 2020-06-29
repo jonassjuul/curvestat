@@ -4,6 +4,7 @@ Get and plot descriptive statistics for ensembles of curves.
 """
 
 from .stats import ( 
-	CurveBoxPlot
+	CurveBoxPlot,
+	LoadRisk
         )
 
