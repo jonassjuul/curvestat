@@ -29,7 +29,6 @@ setup(
                  'Programming Language :: Python :: 3.7'
                  ],
     project_urls={
-        'Documentation': 'TODO',
         'Contributing Statement': 'https://github.com/jonassjuul/curvestat/blob/master/CONTRIBUTING.md',
         'Bug Reports': 'https://github.com/jonassjuul/curvestat/issues',
         'Source': 'https://github.com/jonassjuul/curvestat/',
