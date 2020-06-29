@@ -1,7 +1,7 @@
 # Curvestat
 ## About
 
-`curvestat` allows you to compute and plot curve-based summary statistics for ensembles of curves.
+Compute and plot curve-based summary statistics for ensembles of curves. `curvestat` was written by [Jonas L. Juul](http://www.nbi.dk/~jonassj/).
 
 
 ## Paper
