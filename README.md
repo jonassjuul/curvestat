@@ -18,4 +18,4 @@ If you use `curvestat` please consider citing us! We will post a link here as so
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/benmaier/netwulf/blob/master/LICENSE).
+This project is licensed under the [MIT License](https://github.com/jonassjuul/curvestat/blob/master/LICENSE).
