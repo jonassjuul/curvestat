@@ -19,7 +19,7 @@ If you use `curvestat` please consider citing us! We will post a link here as so
 ## Example
 
 
-![visualization example0](https://github.com/jonassjuul/curvestat/blob/master/curvestat/tests/test_outputs/all_or_nothing_full.png | width=50)
+![visualization example0](https://github.com/jonassjuul/curvestat/blob/master/curvestat/tests/test_outputs/all_or_nothing_full.png){:height="50%" width="50%"}
 
 ## License
 
