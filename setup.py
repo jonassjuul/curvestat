@@ -31,8 +31,8 @@ setup(
     project_urls={
         'Contributing Statement': 'https://github.com/jonassjuul/curvestat/blob/master/CONTRIBUTING.md',
         'Bug Reports': 'https://github.com/jonassjuul/curvestat/issues',
-        'Source': 'https://github.com/jonassjuul/curvestat/',
-        #'PyPI': 'https://pypi.org/project/curvestat/',
+        'Source': 'https://github.com/jonassjuul/curvestat',
+        'PyPI': 'https://pypi.org/project/curvestat',
     },
     include_package_data=True,
     zip_safe=False,
