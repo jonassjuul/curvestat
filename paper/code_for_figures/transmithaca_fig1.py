@@ -2,11 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from scipy.integrate import ode
 import math 
-import pandas as pd
 import copy
 from definitions_visit_model import *
-import random
-import operator
 
 
 '''
