@@ -6,7 +6,7 @@ Compute and plot curve-based summary statistics for ensembles of curves. `curves
 
 ## Paper
 
-If you use `curvestat` please consider citing us! [The paper is available here](www.nature.com/articles/s41567-020-01121-y). [Download citation](https://www.nature.com/articles/s41567-020-01121-y.ris)
+If you use `curvestat` please consider citing us! [The paper is available here](https://www.nature.com/articles/s41567-020-01121-y). [Download citation](https://www.nature.com/articles/s41567-020-01121-y.ris)
 
 ## Install
 
